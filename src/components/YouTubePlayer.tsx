@@ -28,9 +28,11 @@ function loadYouTubeAPI(): Promise<void> {
 type Props = {
   videoId: string | null;
   onEnded?: () => void;
+  audioOnly?: boolean;
 };
 
-export function YouTubePlayer({ videoId, onEnded }: Props) {
+export function YouTubePlayer({ videoId, onEnded, audioOnly = false }: Props) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<any>(null);
   const onEndedRef = useRef(onEnded);
@@ -41,8 +43,8 @@ export function YouTubePlayer({ videoId, onEnded }: Props) {
     loadYouTubeAPI().then(() => {
       if (cancelled || !containerRef.current) return;
       playerRef.current = new window.YT.Player(containerRef.current, {
-        height: "200",
-        width: "300",
+        height: "225",
+        width: "400",
         playerVars: { autoplay: 1, playsinline: 1 },
         events: {
           onStateChange: (e: any) => {
@@ -72,5 +74,26 @@ export function YouTubePlayer({ videoId, onEnded }: Props) {
     return () => clearInterval(interval);
   }, [videoId]);
 
-  return <div ref={containerRef} />;
+  // In audio-only mode, keep the iframe mounted (so audio keeps playing)
+  // but hide it visually off-screen.
+  return (
+    <div
+      ref={wrapperRef}
+      style={
+        audioOnly
+          ? {
+              position: "absolute",
+              width: 1,
+              height: 1,
+              overflow: "hidden",
+              opacity: 0,
+              pointerEvents: "none",
+              left: -9999,
+            }
+          : undefined
+      }
+    >
+      <div ref={containerRef} />
+    </div>
+  );
 }

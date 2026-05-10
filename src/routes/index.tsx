@@ -14,6 +14,7 @@ function Index() {
   const [results, setResults] = useState<YTResult[]>([]);
   const [queue, setQueue] = useState<YTResult[]>([]);
   const [currentIdx, setCurrentIdx] = useState<number>(-1);
+  const [audioOnly, setAudioOnly] = useState<boolean>(true);
   const search = useServerFn(searchYouTube);
 
   const mut = useMutation({
@@ -72,10 +73,33 @@ function Index() {
 
       {current && (
         <div className="rounded border border-border p-4 space-y-2">
-          <div className="text-sm text-muted-foreground">Now playing</div>
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">Now playing</div>
+            <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+              <span>{audioOnly ? "Audio only" : "Video"}</span>
+              <button
+                type="button"
+                onClick={() => setAudioOnly((v) => !v)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  audioOnly ? "bg-muted" : "bg-primary"
+                }`}
+                aria-label="Toggle video"
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-background shadow transition-transform ${
+                    audioOnly ? "translate-x-0.5" : "translate-x-5"
+                  }`}
+                />
+              </button>
+            </label>
+          </div>
           <div className="font-medium">{current.title}</div>
           <div className="text-sm text-muted-foreground">{current.author}</div>
-          <YouTubePlayer videoId={current.videoId} onEnded={playNext} />
+          <YouTubePlayer
+            videoId={current.videoId}
+            onEnded={playNext}
+            audioOnly={audioOnly}
+          />
           <div className="flex gap-2 text-sm">
             <button
               onClick={playNext}
