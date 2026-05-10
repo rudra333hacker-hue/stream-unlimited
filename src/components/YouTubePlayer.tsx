@@ -43,8 +43,8 @@ export function YouTubePlayer({ videoId, onEnded, audioOnly = false }: Props) {
     loadYouTubeAPI().then(() => {
       if (cancelled || !containerRef.current) return;
       playerRef.current = new window.YT.Player(containerRef.current, {
-        height: "225",
-        width: "400",
+        height: "100%",
+        width: "100%",
         playerVars: { autoplay: 1, playsinline: 1 },
         events: {
           onStateChange: (e: any) => {
