@@ -1,9 +1,9 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Search, Library, Music2, Plus, Heart, ListMusic } from "lucide-react";
+import { Home, Search, Library, Music2, Plus, Heart, ListMusic, Download } from "lucide-react";
 import { useLibrary, usePlayer } from "@/lib/store";
 
 export function SidebarNav() {
-  const { playlists, liked, createPlaylist } = useLibrary();
+  const { playlists, liked, createPlaylist, downloaded } = useLibrary();
   const { queue, currentIdx, jumpTo } = usePlayer();
   const path = useRouterState({ select: (r) => r.location.pathname });
 
@@ -43,6 +43,18 @@ export function SidebarNav() {
           </span>
           <span className="flex-1 truncate">Liked Songs</span>
           <span className="text-xs">{liked.length}</span>
+        </Link>
+        <Link
+          to="/downloaded"
+          className={`flex items-center gap-2 px-2 py-2 rounded text-sm font-semibold transition ${
+            path === "/downloaded" ? "bg-secondary/80 text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+          }`}
+        >
+          <span className="h-7 w-7 rounded bg-gradient-to-br from-emerald-600 to-teal-300 grid place-items-center">
+            <Download className="h-3.5 w-3.5 text-white" />
+          </span>
+          <span className="flex-1 truncate">Downloaded</span>
+          <span className="text-xs">{downloaded.length}</span>
         </Link>
       </div>
 
