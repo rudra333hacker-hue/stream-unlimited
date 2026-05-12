@@ -7,7 +7,7 @@ import { searchYouTube } from "@/lib/youtube-search.functions";
 import { useLibrary, usePlayer, type Track } from "@/lib/store";
 
 async function resolveTracks(
-  search: ReturnType<typeof useServerFn<typeof searchYouTube>>,
+  search: (args: { data: { q: string } }) => Promise<Track[]>,
   suggestions: { title: string; artist: string }[],
 ): Promise<Track[]> {
   const results = await Promise.all(
