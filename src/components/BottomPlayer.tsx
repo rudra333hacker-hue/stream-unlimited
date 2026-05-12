@@ -1,12 +1,51 @@
-import { Music2, Video, SkipForward, SkipBack, Heart } from "lucide-react";
+import { useCallback } from "react";
+import {
+  Music2,
+  Video,
+  SkipForward,
+  SkipBack,
+  Heart,
+  Play,
+  Pause,
+  Download,
+  Check,
+} from "lucide-react";
 import { useLibrary, usePlayer } from "@/lib/store";
 import { YouTubePlayer } from "./YouTubePlayer";
+import { useMediaSession } from "@/lib/media-session";
 
 export function BottomPlayer() {
-  const { current, audioOnly, setAudioOnly, next, prev, queue, currentIdx } =
-    usePlayer();
-  const { isLiked, toggleLike } = useLibrary();
+  const {
+    current,
+    audioOnly,
+    setAudioOnly,
+    next,
+    prev,
+    queue,
+    currentIdx,
+    isPlaying,
+    setIsPlaying,
+    registerControls,
+    play,
+    pause,
+  } = usePlayer();
+  const { isLiked, toggleLike, isDownloaded, downloadTrack, removeDownload } =
+    useLibrary();
   const liked = current ? isLiked(current.videoId) : false;
+  const downloaded = current ? isDownloaded(current.videoId) : false;
+
+  useMediaSession(current, {
+    play,
+    pause,
+    next,
+    prev,
+  });
+
+  const togglePlay = useCallback(() => {
+    if (!current) return;
+    if (isPlaying) pause();
+    else play();
+  }, [current, isPlaying, play, pause]);
 
   return (
     <footer
@@ -36,11 +75,37 @@ export function BottomPlayer() {
             <button
               onClick={() => toggleLike(current)}
               className={`shrink-0 ml-1 ${
-                liked ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                liked
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
               aria-label="Like"
             >
               <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} />
+            </button>
+            <button
+              onClick={() =>
+                downloaded
+                  ? removeDownload(current.videoId)
+                  : downloadTrack(current)
+              }
+              className={`shrink-0 ${
+                downloaded
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+              aria-label="Download"
+              title={
+                downloaded
+                  ? "Saved (artwork cached, audio still streams)"
+                  : "Save for offline UI"
+              }
+            >
+              {downloaded ? (
+                <Check className="h-4 w-4" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
             </button>
           </>
         ) : (
@@ -65,6 +130,8 @@ export function BottomPlayer() {
               videoId={current.videoId}
               onEnded={next}
               audioOnly={audioOnly}
+              onReady={registerControls}
+              onPlayingChange={setIsPlaying}
             />
           </div>
         )}
@@ -74,7 +141,7 @@ export function BottomPlayer() {
       <div className="flex items-center gap-2 flex-1 justify-end">
         <button
           onClick={() => setAudioOnly(!audioOnly)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+          className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
             audioOnly
               ? "bg-secondary text-foreground hover:bg-secondary/70"
               : "bg-primary text-primary-foreground"
@@ -98,6 +165,18 @@ export function BottomPlayer() {
           aria-label="Previous"
         >
           <SkipBack className="h-4 w-4" />
+        </button>
+        <button
+          onClick={togglePlay}
+          disabled={!current}
+          className="h-10 w-10 rounded-full bg-foreground text-background grid place-items-center hover:scale-105 disabled:opacity-30 transition"
+          aria-label={isPlaying ? "Pause" : "Play"}
+        >
+          {isPlaying ? (
+            <Pause className="h-4 w-4 fill-current" />
+          ) : (
+            <Play className="h-4 w-4 fill-current ml-0.5" />
+          )}
         </button>
         <button
           onClick={next}
