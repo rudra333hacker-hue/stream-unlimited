@@ -25,6 +25,7 @@ type LibraryState = {
   playlists: Playlist[];
   liked: Track[];
   recent: Track[];
+  downloaded: Track[];
 };
 
 const STORAGE_KEY = "tunes-library-v1";
@@ -77,6 +78,7 @@ const defaultState: LibraryState = {
   ],
   liked: [],
   recent: [],
+  downloaded: [],
 };
 
 function loadState(): LibraryState {
@@ -89,6 +91,7 @@ function loadState(): LibraryState {
       playlists: parsed.playlists ?? defaultState.playlists,
       liked: parsed.liked ?? [],
       recent: parsed.recent ?? [],
+      downloaded: (parsed as any).downloaded ?? [],
     };
   } catch {
     return defaultState;
@@ -104,6 +107,9 @@ type LibraryContextValue = LibraryState & {
   toggleLike: (track: Track) => void;
   isLiked: (videoId: string) => boolean;
   pushRecent: (track: Track) => void;
+  downloadTrack: (track: Track) => Promise<void>;
+  removeDownload: (videoId: string) => Promise<void>;
+  isDownloaded: (videoId: string) => boolean;
 };
 
 const LibraryContext = createContext<LibraryContextValue | null>(null);
@@ -201,6 +207,42 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const downloadTrack = useCallback(async (track: Track) => {
+    const { cacheTrackAssets, requestPersistentStorage } = await import(
+      "./offline-cache"
+    );
+    await requestPersistentStorage();
+    await cacheTrackAssets({
+      videoId: track.videoId,
+      thumbnail: track.thumbnail,
+    });
+    setState((s) =>
+      s.downloaded.some((t) => t.videoId === track.videoId)
+        ? s
+        : { ...s, downloaded: [track, ...s.downloaded] },
+    );
+  }, []);
+
+  const removeDownload = useCallback(async (videoId: string) => {
+    setState((s) => {
+      const t = s.downloaded.find((x) => x.videoId === videoId);
+      if (t) {
+        import("./offline-cache").then(({ uncacheTrackAssets }) =>
+          uncacheTrackAssets({ videoId: t.videoId, thumbnail: t.thumbnail }),
+        );
+      }
+      return {
+        ...s,
+        downloaded: s.downloaded.filter((x) => x.videoId !== videoId),
+      };
+    });
+  }, []);
+
+  const isDownloaded = useCallback(
+    (videoId: string) => state.downloaded.some((t) => t.videoId === videoId),
+    [state.downloaded],
+  );
+
   const value = useMemo(
     () => ({
       ...state,
@@ -212,6 +254,9 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       toggleLike,
       isLiked,
       pushRecent,
+      downloadTrack,
+      removeDownload,
+      isDownloaded,
     }),
     [
       state,
@@ -223,6 +268,9 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       toggleLike,
       isLiked,
       pushRecent,
+      downloadTrack,
+      removeDownload,
+      isDownloaded,
     ],
   );
 
@@ -243,6 +291,7 @@ type PlayerState = {
   queue: Track[];
   currentIdx: number;
   audioOnly: boolean;
+  isPlaying: boolean;
 };
 
 type PlayerContextValue = PlayerState & {
@@ -255,6 +304,10 @@ type PlayerContextValue = PlayerState & {
   setAudioOnly: (v: boolean) => void;
   jumpTo: (idx: number) => void;
   clear: () => void;
+  setIsPlaying: (v: boolean) => void;
+  registerControls: (c: { play: () => void; pause: () => void }) => void;
+  play: () => void;
+  pause: () => void;
 };
 
 const PlayerContext = createContext<PlayerContextValue | null>(null);
@@ -263,6 +316,19 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [queue, setQueue] = useState<Track[]>([]);
   const [currentIdx, setCurrentIdx] = useState(-1);
   const [audioOnly, setAudioOnly] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const controlsRef = useRef<{ play: () => void; pause: () => void } | null>(
+    null,
+  );
+
+  const registerControls = useCallback(
+    (c: { play: () => void; pause: () => void }) => {
+      controlsRef.current = c;
+    },
+    [],
+  );
+  const play = useCallback(() => controlsRef.current?.play(), []);
+  const pause = useCallback(() => controlsRef.current?.pause(), []);
 
   const playNow = useCallback((track: Track) => {
     setQueue([track]);
@@ -310,6 +376,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       queue,
       currentIdx,
       audioOnly,
+      isPlaying,
       current,
       playNow,
       playList,
@@ -319,11 +386,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setAudioOnly,
       jumpTo,
       clear,
+      setIsPlaying,
+      registerControls,
+      play,
+      pause,
     }),
     [
       queue,
       currentIdx,
       audioOnly,
+      isPlaying,
       current,
       playNow,
       playList,
@@ -332,6 +404,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       prev,
       jumpTo,
       clear,
+      registerControls,
+      play,
+      pause,
     ],
   );
 

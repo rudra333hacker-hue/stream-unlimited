@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as LikedRouteImport } from './routes/liked'
 import { Route as LibraryRouteImport } from './routes/library'
+import { Route as DownloadedRouteImport } from './routes/downloaded'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PlaylistPlaylistIdRouteImport } from './routes/playlist.$playlistId'
 
@@ -30,6 +31,11 @@ const LibraryRoute = LibraryRouteImport.update({
   path: '/library',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DownloadedRoute = DownloadedRouteImport.update({
+  id: '/downloaded',
+  path: '/downloaded',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -43,6 +49,7 @@ const PlaylistPlaylistIdRoute = PlaylistPlaylistIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/downloaded': typeof DownloadedRoute
   '/library': typeof LibraryRoute
   '/liked': typeof LikedRoute
   '/search': typeof SearchRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/downloaded': typeof DownloadedRoute
   '/library': typeof LibraryRoute
   '/liked': typeof LikedRoute
   '/search': typeof SearchRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/downloaded': typeof DownloadedRoute
   '/library': typeof LibraryRoute
   '/liked': typeof LikedRoute
   '/search': typeof SearchRoute
@@ -65,12 +74,25 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/library' | '/liked' | '/search' | '/playlist/$playlistId'
+  fullPaths:
+    | '/'
+    | '/downloaded'
+    | '/library'
+    | '/liked'
+    | '/search'
+    | '/playlist/$playlistId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/library' | '/liked' | '/search' | '/playlist/$playlistId'
+  to:
+    | '/'
+    | '/downloaded'
+    | '/library'
+    | '/liked'
+    | '/search'
+    | '/playlist/$playlistId'
   id:
     | '__root__'
     | '/'
+    | '/downloaded'
     | '/library'
     | '/liked'
     | '/search'
@@ -79,6 +101,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DownloadedRoute: typeof DownloadedRoute
   LibraryRoute: typeof LibraryRoute
   LikedRoute: typeof LikedRoute
   SearchRoute: typeof SearchRoute
@@ -108,6 +131,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LibraryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/downloaded': {
+      id: '/downloaded'
+      path: '/downloaded'
+      fullPath: '/downloaded'
+      preLoaderRoute: typeof DownloadedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -127,6 +157,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DownloadedRoute: DownloadedRoute,
   LibraryRoute: LibraryRoute,
   LikedRoute: LikedRoute,
   SearchRoute: SearchRoute,
@@ -135,13 +166,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

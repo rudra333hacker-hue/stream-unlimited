@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Play, Clock } from "lucide-react";
 import { useLibrary, usePlayer } from "@/lib/store";
+import { MadeForYouRow, MoodPrompt } from "@/components/RecommendationsRow";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -60,6 +61,12 @@ function HomePage() {
           </Link>
         ))}
       </section>
+
+      {/* AI: Made for you */}
+      <MadeForYouRow />
+
+      {/* AI: Mood picker */}
+      <MoodPrompt />
 
       {/* Recently played */}
       {recent.length > 0 && (
