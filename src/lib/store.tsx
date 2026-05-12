@@ -25,6 +25,7 @@ type LibraryState = {
   playlists: Playlist[];
   liked: Track[];
   recent: Track[];
+  downloaded: Track[];
 };
 
 const STORAGE_KEY = "tunes-library-v1";
@@ -77,6 +78,7 @@ const defaultState: LibraryState = {
   ],
   liked: [],
   recent: [],
+  downloaded: [],
 };
 
 function loadState(): LibraryState {
@@ -89,6 +91,7 @@ function loadState(): LibraryState {
       playlists: parsed.playlists ?? defaultState.playlists,
       liked: parsed.liked ?? [],
       recent: parsed.recent ?? [],
+      downloaded: (parsed as any).downloaded ?? [],
     };
   } catch {
     return defaultState;
@@ -104,6 +107,9 @@ type LibraryContextValue = LibraryState & {
   toggleLike: (track: Track) => void;
   isLiked: (videoId: string) => boolean;
   pushRecent: (track: Track) => void;
+  downloadTrack: (track: Track) => Promise<void>;
+  removeDownload: (videoId: string) => Promise<void>;
+  isDownloaded: (videoId: string) => boolean;
 };
 
 const LibraryContext = createContext<LibraryContextValue | null>(null);
@@ -201,6 +207,42 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const downloadTrack = useCallback(async (track: Track) => {
+    const { cacheTrackAssets, requestPersistentStorage } = await import(
+      "./offline-cache"
+    );
+    await requestPersistentStorage();
+    await cacheTrackAssets({
+      videoId: track.videoId,
+      thumbnail: track.thumbnail,
+    });
+    setState((s) =>
+      s.downloaded.some((t) => t.videoId === track.videoId)
+        ? s
+        : { ...s, downloaded: [track, ...s.downloaded] },
+    );
+  }, []);
+
+  const removeDownload = useCallback(async (videoId: string) => {
+    setState((s) => {
+      const t = s.downloaded.find((x) => x.videoId === videoId);
+      if (t) {
+        import("./offline-cache").then(({ uncacheTrackAssets }) =>
+          uncacheTrackAssets({ videoId: t.videoId, thumbnail: t.thumbnail }),
+        );
+      }
+      return {
+        ...s,
+        downloaded: s.downloaded.filter((x) => x.videoId !== videoId),
+      };
+    });
+  }, []);
+
+  const isDownloaded = useCallback(
+    (videoId: string) => state.downloaded.some((t) => t.videoId === videoId),
+    [state.downloaded],
+  );
+
   const value = useMemo(
     () => ({
       ...state,
@@ -212,6 +254,9 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       toggleLike,
       isLiked,
       pushRecent,
+      downloadTrack,
+      removeDownload,
+      isDownloaded,
     }),
     [
       state,
@@ -223,6 +268,9 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       toggleLike,
       isLiked,
       pushRecent,
+      downloadTrack,
+      removeDownload,
+      isDownloaded,
     ],
   );
 
