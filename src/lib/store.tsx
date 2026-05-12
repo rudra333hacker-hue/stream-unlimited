@@ -291,6 +291,7 @@ type PlayerState = {
   queue: Track[];
   currentIdx: number;
   audioOnly: boolean;
+  isPlaying: boolean;
 };
 
 type PlayerContextValue = PlayerState & {
@@ -303,6 +304,10 @@ type PlayerContextValue = PlayerState & {
   setAudioOnly: (v: boolean) => void;
   jumpTo: (idx: number) => void;
   clear: () => void;
+  setIsPlaying: (v: boolean) => void;
+  registerControls: (c: { play: () => void; pause: () => void }) => void;
+  play: () => void;
+  pause: () => void;
 };
 
 const PlayerContext = createContext<PlayerContextValue | null>(null);
@@ -311,6 +316,19 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [queue, setQueue] = useState<Track[]>([]);
   const [currentIdx, setCurrentIdx] = useState(-1);
   const [audioOnly, setAudioOnly] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const controlsRef = useRef<{ play: () => void; pause: () => void } | null>(
+    null,
+  );
+
+  const registerControls = useCallback(
+    (c: { play: () => void; pause: () => void }) => {
+      controlsRef.current = c;
+    },
+    [],
+  );
+  const play = useCallback(() => controlsRef.current?.play(), []);
+  const pause = useCallback(() => controlsRef.current?.pause(), []);
 
   const playNow = useCallback((track: Track) => {
     setQueue([track]);
@@ -358,6 +376,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       queue,
       currentIdx,
       audioOnly,
+      isPlaying,
       current,
       playNow,
       playList,
@@ -367,11 +386,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setAudioOnly,
       jumpTo,
       clear,
+      setIsPlaying,
+      registerControls,
+      play,
+      pause,
     }),
     [
       queue,
       currentIdx,
       audioOnly,
+      isPlaying,
       current,
       playNow,
       playList,
@@ -380,6 +404,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       prev,
       jumpTo,
       clear,
+      registerControls,
+      play,
+      pause,
     ],
   );
 
